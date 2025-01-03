@@ -143,7 +143,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update fc --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update fc --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -162,7 +162,7 @@ cd ../../
 # cd build
 # zip -r index.zip *
 
-# wsk -i action update vp --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+# wsk -i action update vp --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 # cd ../../
 
@@ -181,7 +181,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update ir --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update ir --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -200,7 +200,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update sa --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update sa --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -219,7 +219,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update dv --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update dv --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -238,7 +238,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update md --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update md --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -257,7 +257,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update gb --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update gb --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -276,7 +276,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update gm --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update gm --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -295,7 +295,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update gp --kind python:3.10 --main main --memory $memory --timeout $timeout index.zip
+wsk -i action update gp --kind python:3 --main main --memory $memory --timeout $timeout index.zip
 
 cd ../../
 
@@ -379,7 +379,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update EndExperiment --kind python:3.10 --timeout $timeout --main main --memory $memory index.zip
+wsk -i action update EndExperiment --kind python:3 --timeout $timeout --main main --memory $memory index.zip
 
 cd ../../
 
