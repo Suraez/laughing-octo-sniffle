@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# Output CSV file
-OUTPUT_CSV="activations.csv"
+# Check if the output file path is provided as an argument
+if [ -z "$1" ]; then
+  echo "Usage: $0 <output_csv_path>"
+  exit 1
+fi
+
+# Output CSV file path from CLI argument
+OUTPUT_CSV="$1"
 
 # Write header to the CSV file
 echo "Datetime,Activation ID,Kind,Start,Duration,Status,Entity" > "$OUTPUT_CSV"
