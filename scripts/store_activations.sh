@@ -1,13 +1,10 @@
 #!/bin/bash
 
-# Check if the output file path is provided as an argument
-if [ -z "$1" ]; then
-  echo "Usage: $0 <output_csv_path>"
-  exit 1
-fi
+# Get the current datetime in the desired format
+CURRENT_DATETIME=$(date +"%Y%m%d-%H-%M-%S")
 
-# Output CSV file path from CLI argument
-OUTPUT_CSV="$1"
+# Output CSV file with datetime in the name
+OUTPUT_CSV="../run_${CURRENT_DATETIME}.csv"
 
 # Write header to the CSV file
 echo "Datetime,Activation ID,Kind,Start,Duration,Status,Entity" > "$OUTPUT_CSV"
