@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Input file
-DATASET="/home/surazz/projects/laughing-octo-sniffle/invocation_dataset/trace3.csv"
-OUTPUT_MAPPING="/home/surazz/projects/laughing-octo-sniffle/function_mapping.csv"
+DATASET="/home/suraj/projects/laughing-octo-sniffle/invocation_dataset/trace3.csv"
+OUTPUT_MAPPING="/home/suraj/projects/laughing-octo-sniffle/function_mapping.csv"
 
 # Reversed Action List
 declare -a ACTION_LIST=(
@@ -83,7 +83,7 @@ invoke_functions() {
                 if [[ -n "$FUNC" ]]; then
                     for ((i = 1; i <= COLUMN_VALUE; i++)); do
                         echo "Invoking function: wsk -i action invoke $FUNC (Minute: $MINUTE) - Invocation $i of $COLUMN_VALUE"
-                        wsk -i action invoke "$FUNC" > /dev/null 2>&1
+                        wsk -i action invoke "$FUNC" --blocking > /dev/null 2>&1
                         ((invocation_count++))  # Increment the counter
                         # sleep 0.5  # Sleep for 0.5 seconds
                     done
