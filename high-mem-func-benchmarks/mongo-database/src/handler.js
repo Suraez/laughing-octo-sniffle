@@ -1,7 +1,7 @@
 const { MongoClient } = require("mongodb");
 
 // Replace with your MongoDB Atlas connection string
-const uri = "mongodb+srv://so299:M6o6n6g4@cluster0.ylvqo.mongodb.net/";
+const uri = "paste your creds here"
 
 async function getDatabaseStats() {
     const client = new MongoClient(uri);
