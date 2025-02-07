@@ -1,0 +1,12 @@
+{
+    "name": "mongodb-stats",
+    "version": "1.0.0",
+    "description": "Serverless function to fetch MongoDB database stats.",
+    "main": "index.js",
+    "dependencies": {
+      "mongodb": "^5.6.0"
+    },
+    "author": "",
+    "license": "ISC"
+  }
+  

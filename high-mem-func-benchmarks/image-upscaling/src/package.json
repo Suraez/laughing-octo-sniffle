@@ -1,0 +1,13 @@
+{
+    "main": "index.js",
+    "name": "image-processing",
+    "version": "1.0.0",
+    "description": "A serverless function for image processing and upscaling",
+    "author": "",
+    "license": "",
+    "dependencies": {
+      "jimp": "^0.4.0",
+      "node-zip": "^1.1.1"
+    }
+  }
+  
