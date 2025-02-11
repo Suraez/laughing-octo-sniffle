@@ -59,17 +59,6 @@ wsk -i action update ir --kind python:3 --main main --memory 512 --timeout 60000
 
 
 
-cd ../../github-pull
-
-rm -rf build
-mkdir build
-cp -R src/* build
-cd build && npm install
-zip -r index.zip *
-
-wsk -i action update gp --kind nodejs:12 --memory $memory --timeout $timeout index.
-
-
 
 
 # # Image Processing Function
