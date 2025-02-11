@@ -1,0 +1,10 @@
+#!/usr/bin/bpftrace
+
+tracepoint:kmem:mm_page_alloc {
+    printf("PAGE ALLOC: order=%d, migratetype=%d\n", args->order, args->migratetype);
+}
+
+tracepoint:kmem:mm_page_free {
+    printf("PAGE FREE: order=%d\n", args->order);
+}
+

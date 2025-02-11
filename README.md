@@ -4,3 +4,7 @@ Sampled Azure Function Invocation traces are present in the invocation_dataset d
 
 And benchmarks (functions) that could possibly create memory pressure on the system are available in the
 high-mem-func-benchmarks
+
+
+Inside the `monitoring` folder , the script for tracing page_free and page_alloc can be run <br>
+using `sudo bpftrace trace_pages.bt`
