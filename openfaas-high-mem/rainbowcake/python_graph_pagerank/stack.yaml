@@ -1,0 +1,12 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  python-graph-pagerank:
+    lang: python3-http-debian
+    handler: ./python-graph-pagerank
+    image: imsuraj/python-graph-pagerank:latest
+    labels:
+      com.openfaas.scale.min: "2"
+      com.openfaas.scale.max: "3"

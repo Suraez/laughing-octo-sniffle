@@ -1,0 +1,12 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  image-recognition:
+    lang: python3-http-debian
+    handler: ./image-recognition
+    image: imsuraj/image-recognition:latest
+    labels:
+      com.openfaas.scale.min: "1"
+      com.openfaas.scale.max: "5"
