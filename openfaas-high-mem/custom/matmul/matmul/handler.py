@@ -12,7 +12,7 @@ def matmul(n):
 
 def handle(event, context):
     try:
-        n = 86400  # Hardcoded matrix size
+        n = 8192  # Hardcoded matrix size
         latency = matmul(n)
 
         return {
