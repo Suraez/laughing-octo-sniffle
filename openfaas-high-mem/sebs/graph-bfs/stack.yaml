@@ -5,8 +5,8 @@ provider:
 functions:
   python-bfs:
     lang: python3-http
-    handler: ./python-bfs
-    image: imsuraj/python-bfs:latest
+    handler: ./graph-bfs
+    image: imsuraj/graph-bfs:latest
     labels:
       com.openfaas.scale.min: "2"
       com.openfaas.scale.max: "5"
