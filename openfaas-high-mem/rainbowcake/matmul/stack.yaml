@@ -3,10 +3,10 @@ provider:
   name: openfaas
   gateway: http://127.0.0.1:8080
 functions:
-  image-recognition:
+  matmul:
     lang: python3-http-debian
-    handler: ./image-recognition
-    image: imsuraj/image-recognition:latest
+    handler: ./matmul
+    image: imsuraj/matmul:latest
     labels:
       com.openfaas.scale.min: "1"
       com.openfaas.scale.max: "5"
