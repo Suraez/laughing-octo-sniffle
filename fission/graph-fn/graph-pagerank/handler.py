@@ -1,6 +1,7 @@
+import igraph
+import time
+
 def main(input=None):
-    import igraph
-    import time
 
     start = time.time()
     size = 1000

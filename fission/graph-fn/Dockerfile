@@ -1,6 +1,6 @@
 FROM ghcr.io/fission/python-env:latest
 
-# Install build tools and igraph C library
+
 RUN apk add --no-cache \
     build-base \
     python3-dev \
