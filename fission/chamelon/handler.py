@@ -16,13 +16,12 @@ BIGTABLE_ZPT = """
 </table>
 """
 
-
-def handle(input=None):
+def main(input=None):
     try:
-        data = json.loads({})
+        data = json.loads(input.get("body", "{}"))
         num_of_rows = int(data.get('num_of_rows', 5))
         num_of_cols = int(data.get('num_of_cols', 3))
-    except:
+    except Exception:
         num_of_rows = 5
         num_of_cols = 3
 
@@ -46,3 +45,7 @@ def handle(input=None):
             "Content-Type": "application/json"
         }
     }
+
+
+if __name__ == "__main__":
+    print(handler(None))
