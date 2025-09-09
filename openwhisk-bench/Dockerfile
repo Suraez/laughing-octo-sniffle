@@ -8,5 +8,5 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Python deps (pin whatever you actually need)
-RUN pip3 install --no-cache-dir chameleon six
+RUN pip3 install --no-cache-dir chameleon six igraph transformers torch numpy
 ENV PYTHONIOENCODING=UTF-8
