@@ -1,3 +1,12 @@
+
+#! /bin/bash
+
+set -e
+
+# Function configurations
+memory=18
+timeout=60000
+
 cd image-recognition
 
 # Destroy and prepare build folder.
@@ -9,7 +18,7 @@ cp -R src/* build
 cd build && npm install
 zip -r index.zip *
 
-wsk -i action update ir --kind nodejs:14 --main main --memory 512 --timeout 60000 --web true index.zip
+wsk -i action update ir --kind nodejs:14 --main main --memory 30 --timeout 60000 --web true index.zip
 
 
 
@@ -40,7 +49,7 @@ cp -R src/* build
 cd build
 zip -r index.zip *
 
-wsk -i action update bfs --kind python:3.11 --main main --memory 256 --timeout 60000 --web true index.zip
+wsk -i action update bfs --kind python:3.11 --main main --memory 20 --timeout 60000 --web true index.zip
 
 
 # cd ../..
