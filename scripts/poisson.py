@@ -2,19 +2,22 @@ import asyncio
 import random
 import time
 from typing import Optional
-
+import os
+from datetime import datetime
 import aiohttp
+
+LOG_FILE = "run_summary_sep19.log"
 
 # --------------------------
 # Config
 # --------------------------
-arrival_rate = 2    # requests per second (pick something realistic for one host)
-duration = 10         # seconds to generate requests
-url = "https://192.168.49.2:31001/api/v1/web/guest/default/ir"
+arrival_rate = 10    # requests per second (pick something realistic for one host)
+duration = 60         # seconds to generate requests
+url = "http://172.17.0.1:3233/api/v1/web/guest/default/bert"  # target URL
 
 # Execution controls
-concurrency_limit = 2000        # max in-flight requests at once (protects your box)
-request_timeout_s = 5           # per-request timeout
+concurrency_limit = 1000        # max in-flight requests at once (protects your box)
+request_timeout_s = 60         # per-request timeout
 grace_period_s = 3              # after generation ends, how long to wait for stragglers
 print_every = 1000              # progress print cadence (set None to disable)
 
@@ -46,7 +49,7 @@ async def fire(session: aiohttp.ClientSession, url: str, sem: asyncio.Semaphore,
             stats.err += 1
 
 async def main():
-    stats = Stats()
+    stats = Stats() 
     sem = asyncio.Semaphore(concurrency_limit)
     tasks = set()
 
@@ -96,9 +99,50 @@ async def main():
                     await asyncio.gather(*tasks, return_exceptions=True)
 
     wall = time.monotonic() - start
-    print(f"\nDone. Wall time: {wall:.2f}s "
+    log_summary(f"\nDone. Wall time: {wall:.2f}s "
           f"| generated_for≈{duration}s | sent={stats.sent} ok={stats.ok} err={stats.err}")
+
+def log_meminfo(label: str) -> None:
+    meminfo = {}
+    with open("/proc/meminfo") as f:
+        for line in f:
+            parts = line.split(":")
+            if len(parts) == 2:
+                key = parts[0].strip()
+                value = parts[1].strip().split()[0]
+                meminfo[key] = int(value)
+
+    page_size_kb = os.sysconf("SC_PAGE_SIZE") // 1024  # usually 4 KB
+
+    free_mem_kb = meminfo.get("MemFree", 0)
+    inactive_file_kb = meminfo.get("Inactive(file)", 0)
+
+    free_mem_mb = free_mem_kb / 1024
+    inactive_file_pages = inactive_file_kb // page_size_kb
+
+    log_line = (
+        f"[{datetime.now().isoformat(sep=' ', timespec='seconds')}] "
+        f"{label} | Free memory: {free_mem_mb:.2f} MB | "
+        f"Inactive file-backed pages: {inactive_file_pages} \n"
+    )
+
+    print("\n" + log_line.strip())
+    with open(LOG_FILE, "a") as f:
+        f.write(log_line)
+
+
+
+def log_summary(summary: str) -> None:
+    """Log run summary (wall time, rows, avg latency, etc.)."""
+    log_line = f"[{datetime.now().isoformat(sep=' ', timespec='seconds')}] {summary}\n"
+    print(log_line.strip())
+    with open(LOG_FILE, "a") as f:
+        f.write(log_line)
+
 
 if __name__ == "__main__":
     import contextlib
+    log_meminfo("before requests")
     asyncio.run(main())
+    log_meminfo("after requests")
+
