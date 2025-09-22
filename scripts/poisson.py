@@ -13,7 +13,7 @@ LOG_FILE = "run_summary_sep19.log"
 # --------------------------
 arrival_rate = 10    # requests per second (pick something realistic for one host)
 duration = 60         # seconds to generate requests
-url = "http://172.17.0.1:3233/api/v1/web/guest/default/bert"  # target URL
+url = "http://172.17.0.1:3233/api/v1/web/guest/default/ir"  # target URL
 
 # Execution controls
 concurrency_limit = 1000        # max in-flight requests at once (protects your box)
