@@ -4,7 +4,7 @@
 set -e
 
 # Function configurations
-memory=18
+memory=600
 timeout=60000
 
 cd image-recognition
@@ -15,12 +15,10 @@ mkdir build
 
 # Copy files to build folder.
 cp -R src/* build
-cd build && npm install
+cd build
 zip -r index.zip *
 
-wsk -i action update ir --kind nodejs:14 --main main --memory 30 --timeout 60000 --web true index.zip
-
-
+wsk -i action update ir --kind python:3.9 --main main --memory 530 --timeout 120000 index.zip --web true
 
 # cd ../..
 
@@ -34,22 +32,22 @@ wsk -i action update ir --kind nodejs:14 --main main --memory 30 --timeout 60000
 # cd build
 # zip -r index.zip *
 
-# wsk -i action update vp --kind python:3.11 --main main --memory 512 --timeout 60000 --web true index.zip
+# wsk -i action update vp --kind python:3.11 --main main --memory 256 --timeout 60000 --web true index.zip
 
 
-cd ../..
-#python bfs
+# cd ../..
+# #python bfs
 
-cd python-bfs
+# cd python-bfs
 
-rm -rf build
-mkdir build
+# rm -rf build
+# mkdir build
 
-cp -R src/* build
-cd build
-zip -r index.zip *
+# cp -R src/* build
+# cd build
+# zip -r index.zip *
 
-wsk -i action update bfs --kind python:3.11 --main main --memory 20 --timeout 60000 --web true index.zip
+# wsk -i action update bfs --kind python:3.11 --main main --memory 20 --timeout 60000 --web true index.zip
 
 
 # cd ../..
@@ -64,3 +62,32 @@ wsk -i action update bfs --kind python:3.11 --main main --memory 20 --timeout 60
 # zip -r index.zip *
 
 # wsk -i action update gp --kind python:3.11 --main main --memory 256 --timeout 60000 --web true index.zip
+
+cd ../..
+
+cd bert
+
+rm -rf build
+mkdir build
+    
+cp -R src/* build
+cd build
+zip -r index.zip *
+
+wsk -i action update bert --kind python:3.12 --main main --memory 950 --timeout 200000 --web true index.zip
+
+
+# cd ../..
+
+# cd image-recognition
+
+# # Destroy and prepare build folder.
+# rm -rf build
+# mkdir build
+
+# # Copy files to build folder.
+# cp -R src/* build
+# cd build
+# zip -r index.zip *
+
+# wsk -i action update ir2 --kind python:3.9 --main main --memory 600 --timeout 120000 index.zip --web true
