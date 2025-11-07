@@ -5,7 +5,11 @@ import subprocess
 from datetime import datetime
 import argparse
 import re
+import os
 
+# --------------------------
+# CONFIG
+# --------------------------
 URLS = {
     "dh": "http://172.17.0.1:3233/api/v1/web/guest/default/dh",
     "vp": "http://172.17.0.1:3233/api/v1/web/guest/default/vp"
@@ -14,9 +18,6 @@ URLS = {
 REQUEST_TIMEOUT = 120
 LOG_FILE = "burst_requests_cli_poll_nov7_v1.log"
 
-# --------------------------
-# CONFIGURE ROUNDS HERE
-# -------------------------- 
 ROUNDS = [
     {"vp": 5, "dh": 4},
     {"vp": 5, "dh": 3},
@@ -56,6 +57,7 @@ def log_line(text: str):
     with open(LOG_FILE, "a") as f:
         f.write(line + "\n")
 
+
 # --------------------------
 # ACTIVATION UTILITIES
 # --------------------------
@@ -64,6 +66,7 @@ def parse_activation_id(line: str):
     m = re.search(r"\b([0-9a-f]{32})\b", line)
     return m.group(1) if m else None
 
+
 def classify_start_field(line: str):
     """Detect 'cold' or 'warm' from the Start column."""
     if re.search(r"\bcold\b", line, re.IGNORECASE):
@@ -71,6 +74,7 @@ def classify_start_field(line: str):
     if re.search(r"\bwarm\b", line, re.IGNORECASE):
         return "warm"
     return None
+
 
 def log_activations_with_delta(prev_ids: set, limit: int):
     """
@@ -109,6 +113,7 @@ def log_activations_with_delta(prev_ids: set, limit: int):
 
     return new_lines, new_ids, counts
 
+
 # --------------------------
 # REQUEST HANDLER
 # --------------------------
@@ -123,12 +128,56 @@ async def fire(session: aiohttp.ClientSession, url: str, label: str):
     except Exception as e:
         return (label, f"error:{e.__class__.__name__}", None)
 
+
+# --------------------------
+# MEMORY HIGH UTILITY
+# --------------------------
+def set_memory_high_for_dh(mem_high: int, cgroup_parent: str):
+    """
+    Apply memory.high limit to all Docker containers whose name contains '_dh'.
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--filter", "name=_dh", "-q"],
+            capture_output=True, text=True
+        )
+        ids = [cid.strip() for cid in result.stdout.splitlines() if cid.strip()]
+        if not ids:
+            log_line("No _dh containers found.")
+            return
+
+        for cid in ids:
+            inspect = subprocess.run(
+                ["docker", "inspect", "--format", "{{.Id}}", cid],
+                capture_output=True, text=True
+            )
+            full_id = inspect.stdout.strip()
+            scope = f"/sys/fs/cgroup/{cgroup_parent}/docker-{full_id}.scope"
+            if not os.path.exists(scope):
+                log_line(f"[WARN] Scope not found: {scope}")
+                continue
+
+            log_line(f"Setting memory.high={mem_high} for container {cid} ...")
+            try:
+                subprocess.run(
+                    ["sudo", "tee", os.path.join(scope, "memory.high")],
+                    input=str(mem_high).encode(),
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+
+            except Exception as e:
+                log_line(f"[ERROR] Failed for {cid}: {e}")
+    except Exception as e:
+        log_line(f"[EXCEPTION] set_memory_high_for_dh: {e}")
+
+
 # --------------------------
 # RUN ONE BURST ROUND
 # --------------------------
 async def run_burst(vp_count: int, dh_count: int, round_num: int, prev_ids: set):
     total = vp_count + dh_count
-    poll_limit = total  # dynamic: poll as many activations as requests we sent this round
+    poll_limit = total
 
     log_line(f"\n--- ROUND {round_num} START ---")
     log_line(f"Starting burst of {total} concurrent requests ({vp_count}→vp, {dh_count}→dh)...")
@@ -154,7 +203,6 @@ async def run_burst(vp_count: int, dh_count: int, round_num: int, prev_ids: set)
 
     log_line(f"Round {round_num} Summary: ok={len(latencies)} avg={avg_latency:.1f} ms p95={p95:.1f} ms")
 
-    # wait before polling activations
     await asyncio.sleep(5)
     log_line(f"Polling OpenWhisk activations after Round {round_num} with limit={poll_limit}...")
     new_lines, new_ids, counts = log_activations_with_delta(prev_ids, limit=poll_limit)
@@ -164,20 +212,20 @@ async def run_burst(vp_count: int, dh_count: int, round_num: int, prev_ids: set)
     log_line(f"Round {round_num}: Cold starts detected = {cold_count} (warm={warm_count})")
     log_line(f"--- ROUND {round_num} END ---\n")
 
-    return {"round": round_num, "vp": vp_count, "dh": dh_count, "cold": cold_count, "warm": warm_count, "p95": p95}, new_ids
+    return {"round": round_num, "vp": vp_count, "dh": dh_count,
+            "cold": cold_count, "warm": warm_count, "p95": p95}, new_ids
+
 
 # --------------------------
 # MAIN ORCHESTRATOR
 # --------------------------
-async def orchestrator():
+async def orchestrator(mem_high: int, cgroup_parent: str):
     all_rounds = []
     total_cold_excl_first = 0
     first_round_cold = 0
     prev_ids = set()
 
-    # initial snapshot: seed with the max round size
     initial_limit = max((cfg["vp"] + cfg["dh"]) for cfg in ROUNDS)
-
     initial_lines = subprocess.run(
         ["wsk", "-i", "activation", "list", "--limit", str(initial_limit)],
         capture_output=True, text=True
@@ -191,25 +239,39 @@ async def orchestrator():
     for i, config in enumerate(ROUNDS, start=1):
         result, new_ids = await run_burst(config["vp"], config["dh"], i, prev_ids)
         all_rounds.append(result)
+
         if i == 1:
             first_round_cold = result["cold"]
         else:
             total_cold_excl_first += result["cold"]
+
         prev_ids |= new_ids
-        await asyncio.sleep(10)  # delay between rounds
+
+        # Apply memory.high after each round if requested
+        if mem_high is not None:
+            set_memory_high_for_dh(mem_high, cgroup_parent)
+
+        await asyncio.sleep(10)
 
     log_line("=== ALL ROUNDS COMPLETE ===")
     for r in all_rounds:
-        log_line(f"Round {r['round']}: vp={r['vp']} dh={r['dh']} p95={r['p95']:.1f}ms cold={r['cold']} warm={r['warm']}")
+        log_line(f"Round {r['round']}: vp={r['vp']} dh={r['dh']} "
+                 f"p95={r['p95']:.1f}ms cold={r['cold']} warm={r['warm']}")
 
-    # show "A - B = C" where A is total including first, B is first round cold, C excludes first
     grand_total_incl_first = first_round_cold + total_cold_excl_first
-    log_line(f"Total cold starts across all rounds: {grand_total_incl_first}-{first_round_cold} = {total_cold_excl_first}")
+    log_line(f"Total cold starts across all rounds: "
+             f"{grand_total_incl_first}-{first_round_cold} = {total_cold_excl_first}")
+
 
 # --------------------------
 # ENTRY POINT
 # --------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Send multi-round bursts to vp/dh.")
+    parser.add_argument("--mem-high", type=int, default=None,
+                        help="Value (in bytes) to set for memory.high for dh containers after each round")
+    parser.add_argument("--cgroup-parent", type=str, default="docker_elastic.slice",
+                        help="Parent slice name under /sys/fs/cgroup")
     args = parser.parse_args()
-    asyncio.run(orchestrator())
+
+    asyncio.run(orchestrator(args.mem_high, args.cgroup_parent))
