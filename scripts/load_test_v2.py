@@ -8,15 +8,15 @@ import re
 
 URLS = {
     "dh": "http://172.17.0.1:3233/api/v1/web/guest/default/dh",
-    "vp": "http://172.17.0.1:3233/api/v1/web/guest/default/vp"
+    "ch": "http://172.17.0.1:3233/api/v1/web/guest/default/ch"
 }
 
 REQUEST_TIMEOUT = 120
-LOG_FILE = "burst_requests_cli_poll_nov7_v1.log"
+LOG_FILE = "burst_requests_cli_poll_nov7_ch.log"
 
 # --------------------------
 # CONFIGURE ROUNDS HERE
-# -------------------------- 
+# --------------------------
 ROUNDS = [
     {"vp": 5, "dh": 4},
     {"vp": 5, "dh": 3},
@@ -45,12 +45,10 @@ ROUNDS = [
     {"vp": 3, "dh": 4}
 ]
 
-
 # --------------------------
 # LOGGING
 # --------------------------
 def log_line(text: str):
-    """Print and write a timestamped line to the log file."""
     line = f"[{datetime.now().isoformat(sep=' ', timespec='seconds')}] {text}"
     print(line)
     with open(LOG_FILE, "a") as f:
@@ -60,12 +58,10 @@ def log_line(text: str):
 # ACTIVATION UTILITIES
 # --------------------------
 def parse_activation_id(line: str):
-    """Extract Activation ID (first 32-hex token)."""
     m = re.search(r"\b([0-9a-f]{32})\b", line)
     return m.group(1) if m else None
 
 def classify_start_field(line: str):
-    """Detect 'cold' or 'warm' from the Start column."""
     if re.search(r"\bcold\b", line, re.IGNORECASE):
         return "cold"
     if re.search(r"\bwarm\b", line, re.IGNORECASE):
@@ -73,10 +69,6 @@ def classify_start_field(line: str):
     return None
 
 def log_activations_with_delta(prev_ids: set, limit: int):
-    """
-    Logs recent activations and counts new cold/warm starts.
-    Returns (new_lines, new_ids, counts)
-    """
     cmd = ["wsk", "-i", "activation", "list", "--limit", str(limit)]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -91,7 +83,6 @@ def log_activations_with_delta(prev_ids: set, limit: int):
     for l in lines:
         log_line(f"[ACTIVATION] {l}")
 
-    # Skip header
     body = lines[1:] if lines and lines[0].lower().startswith("datetime") else lines
     new_lines, new_ids = [], set()
     counts = {"cold": 0, "warm": 0}
@@ -113,7 +104,6 @@ def log_activations_with_delta(prev_ids: set, limit: int):
 # REQUEST HANDLER
 # --------------------------
 async def fire(session: aiohttp.ClientSession, url: str, label: str):
-    """Send one request and record latency."""
     start = time.monotonic()
     try:
         async with session.get(url, ssl=False, timeout=REQUEST_TIMEOUT) as r:
@@ -126,18 +116,18 @@ async def fire(session: aiohttp.ClientSession, url: str, label: str):
 # --------------------------
 # RUN ONE BURST ROUND
 # --------------------------
-async def run_burst(vp_count: int, dh_count: int, round_num: int, prev_ids: set):
-    total = vp_count + dh_count
-    poll_limit = total  # dynamic: poll as many activations as requests we sent this round
+async def run_burst(ch_count: int, dh_count: int, round_num: int, prev_ids: set):
+    total = ch_count + dh_count
+    poll_limit = total
 
     log_line(f"\n--- ROUND {round_num} START ---")
-    log_line(f"Starting burst of {total} concurrent requests ({vp_count}→vp, {dh_count}→dh)...")
+    log_line(f"Starting burst of {total} concurrent requests ({ch_count}→ch, {dh_count}→dh)...")
 
     timeout = aiohttp.ClientTimeout(total=None, connect=REQUEST_TIMEOUT)
     connector = aiohttp.TCPConnector(ssl=False, limit=0)
 
     async with aiohttp.ClientSession(timeout=timeout, connector=connector) as session:
-        tasks = [asyncio.create_task(fire(session, URLS["vp"], f"vp-{i+1}")) for i in range(vp_count)]
+        tasks = [asyncio.create_task(fire(session, URLS["ch"], f"ch-{i+1}")) for i in range(ch_count)]
         tasks += [asyncio.create_task(fire(session, URLS["dh"], f"dh-{i+1}")) for i in range(dh_count)]
 
         start_wall = time.monotonic()
@@ -154,7 +144,6 @@ async def run_burst(vp_count: int, dh_count: int, round_num: int, prev_ids: set)
 
     log_line(f"Round {round_num} Summary: ok={len(latencies)} avg={avg_latency:.1f} ms p95={p95:.1f} ms")
 
-    # wait before polling activations
     await asyncio.sleep(5)
     log_line(f"Polling OpenWhisk activations after Round {round_num} with limit={poll_limit}...")
     new_lines, new_ids, counts = log_activations_with_delta(prev_ids, limit=poll_limit)
@@ -164,7 +153,7 @@ async def run_burst(vp_count: int, dh_count: int, round_num: int, prev_ids: set)
     log_line(f"Round {round_num}: Cold starts detected = {cold_count} (warm={warm_count})")
     log_line(f"--- ROUND {round_num} END ---\n")
 
-    return {"round": round_num, "vp": vp_count, "dh": dh_count, "cold": cold_count, "warm": warm_count, "p95": p95}, new_ids
+    return {"round": round_num, "ch": ch_count, "dh": dh_count, "cold": cold_count, "warm": warm_count, "p95": p95}, new_ids
 
 # --------------------------
 # MAIN ORCHESTRATOR
@@ -175,8 +164,7 @@ async def orchestrator():
     first_round_cold = 0
     prev_ids = set()
 
-    # initial snapshot: seed with the max round size
-    initial_limit = max((cfg["vp"] + cfg["dh"]) for cfg in ROUNDS)
+    initial_limit = max((cfg["ch"] + cfg["dh"]) for cfg in ROUNDS)
 
     initial_lines = subprocess.run(
         ["wsk", "-i", "activation", "list", "--limit", str(initial_limit)],
@@ -189,20 +177,19 @@ async def orchestrator():
                 prev_ids.add(act_id)
 
     for i, config in enumerate(ROUNDS, start=1):
-        result, new_ids = await run_burst(config["vp"], config["dh"], i, prev_ids)
+        result, new_ids = await run_burst(config["ch"], config["dh"], i, prev_ids)
         all_rounds.append(result)
         if i == 1:
             first_round_cold = result["cold"]
         else:
             total_cold_excl_first += result["cold"]
         prev_ids |= new_ids
-        await asyncio.sleep(10)  # delay between rounds
+        await asyncio.sleep(10)
 
     log_line("=== ALL ROUNDS COMPLETE ===")
     for r in all_rounds:
-        log_line(f"Round {r['round']}: vp={r['vp']} dh={r['dh']} p95={r['p95']:.1f}ms cold={r['cold']} warm={r['warm']}")
+        log_line(f"Round {r['round']}: ch={r['ch']} dh={r['dh']} p95={r['p95']:.1f}ms cold={r['cold']} warm={r['warm']}")
 
-    # show "A - B = C" where A is total including first, B is first round cold, C excludes first
     grand_total_incl_first = first_round_cold + total_cold_excl_first
     log_line(f"Total cold starts across all rounds: {grand_total_incl_first}-{first_round_cold} = {total_cold_excl_first}")
 
@@ -210,6 +197,6 @@ async def orchestrator():
 # ENTRY POINT
 # --------------------------
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Send multi-round bursts to vp/dh.")
+    parser = argparse.ArgumentParser(description="Send multi-round bursts to ch/dh.")
     args = parser.parse_args()
     asyncio.run(orchestrator())
